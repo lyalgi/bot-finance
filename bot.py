@@ -4,30 +4,36 @@ from datetime import datetime, timedelta
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
+import json
 
-# 🔐 ЗАМЕНИ НА СВОЙ ТОКЕН БОТА
-API_TOKEN = os.getenv('API_TOKEN') 
-
-# Google Sheets
-SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
-
-CREDS_FILE = 'gogolove-de9dd-f226a1cf849a.json'  # путь до файла сервисного аккаунта
+# Загрузка конфигурации
+API_TOKEN = os.getenv('API_TOKEN')
 SPREADSHEET_NAME = 'Business Tracker'
 
-# 📆 Русский формат даты
-MONTHS_RU = {
-    1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля', 5: 'мая',
-    6: 'июня', 7: 'июля', 8: 'августа', 9: 'сентября',
-    10: 'октября', 11: 'ноября', 12: 'декабря'
+# Настройка Google Sheets
+SCOPE = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive"
+]
+
+# Создаем credentials из переменных окружения
+creds_dict = {
+    "type": os.getenv('GS_TYPE'),
+    "project_id": os.getenv('GS_PROJECT_ID'),
+    "private_key_id": os.getenv('GS_PRIVATE_KEY_ID'),
+    "private_key": os.getenv('GS_PRIVATE_KEY').replace('\\n', '\n'),
+    "client_email": os.getenv('GS_CLIENT_EMAIL'),
+    "client_id": os.getenv('GS_CLIENT_ID'),
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{os.getenv('GS_CLIENT_EMAIL').replace('@', '%40')}"
 }
 
-def format_date_rus(date_obj):
-    return f"{date_obj.day} {MONTHS_RU[date_obj.month]} {date_obj.year}"
-
-
 # Инициализация Google Sheets
-creds = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
 client = gspread.authorize(creds)
 sheet = client.open(SPREADSHEET_NAME).worksheet("transactions")
 
@@ -189,4 +195,13 @@ async def generate_report(message: types.Message):
 
 # 👉 Запуск
 if __name__ == '__main__':
+    # Проверка обязательных переменных
+    required_vars = ['API_TOKEN', 'GS_TYPE', 'GS_PROJECT_ID', 'GS_PRIVATE_KEY_ID', 
+                   'GS_PRIVATE_KEY', 'GS_CLIENT_EMAIL', 'GS_CLIENT_ID']
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        logging.error(f"Отсутствуют обязательные переменные: {', '.join(missing_vars)}")
+        exit(1)
+        
     executor.start_polling(dp, skip_updates=True)
