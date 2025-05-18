@@ -6,7 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 
 # 🔐 ЗАМЕНИ НА СВОЙ ТОКЕН БОТА
-API_TOKEN = '7916249076:AAEPh6e9qscRGVlgrP0QwrEl-6wDAGPr-SY'
+API_TOKEN = os.getenv('API_TOKEN') 
 
 # Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
