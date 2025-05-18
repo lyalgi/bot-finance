@@ -5,6 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
 import json
+from flask import Flask
 
 # Загрузка конфигурации
 API_TOKEN = os.getenv('API_TOKEN')
@@ -195,6 +196,9 @@ async def generate_report(message: types.Message):
 
 # 👉 Запуск
 if __name__ == '__main__':
+    from threading import Thread
+    from flask import Flask
+    
     # Проверка обязательных переменных
     required_vars = ['API_TOKEN', 'GS_TYPE', 'GS_PROJECT_ID', 'GS_PRIVATE_KEY_ID', 
                    'GS_PRIVATE_KEY', 'GS_CLIENT_EMAIL', 'GS_CLIENT_ID']
@@ -203,5 +207,17 @@ if __name__ == '__main__':
     if missing_vars:
         logging.error(f"Отсутствуют обязательные переменные: {', '.join(missing_vars)}")
         exit(1)
-        
-    executor.start_polling(dp, skip_updates=True)
+
+    # Создаем минимальный Flask-сервер
+    app = Flask(__name__)
+
+    @app.route('/')
+    def health_check():
+        return "Telegram Bot is running", 200
+
+    # Запускаем бота в отдельном потоке
+    Thread(target=lambda: executor.start_polling(dp, skip_updates=True)).start()
+    
+    # Запускаем Flask на порту 8080 (для Timeweb)
+    app.run(host='0.0.0.0', port=8080)
+
